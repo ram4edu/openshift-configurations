@@ -1,0 +1,73 @@
+apiVersion: 1.0.0
+metadata:
+  name: wksp-custom-e8y7o
+projects:
+  - name: java-poc
+    source:
+      location: 'https://github.com/ram4edu/java-poc'
+      type: git
+components:
+  - id: redhat/quarkus-java11/latest
+    type: chePlugin
+  - mountSources: true
+    endpoints:
+      - name: quarkus-development-server
+        port: 8080
+      - attributes:
+          path: /hello/greeting/che-user
+        name: hello-greeting-endpoint
+        port: 8080
+    memoryLimit: 512Mi
+    type: dockerimage
+    volumes:
+      - name: gradle
+        containerPath: /home/jboss/.gradle
+    alias: gradle
+    image: 'registry.redhat.io/codeready-workspaces/plugin-java11-rhel8@sha256:c13f0bb5f41dfe19ae90912392afc85aa8128cd3d4f7c01131cabe8d5ae3e87a'
+    env:
+      - value: '-XX:MaxRAMPercentage=50.0 -XX:+UseParallelGC -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -Dsun.zip.disableMemoryMapping=true -Xms20m -Djava.security.egd=file:/dev/./urandom -Duser.home=/home/jboss'
+        name: JAVA_OPTS
+      - value: $(JAVA_OPTS)
+        name: JAVA_TOOL_OPTIONS
+      - value: /home/jboss
+        name: HOME
+commands:
+  - name: 1. Build
+    actions:
+      - workdir: '${CHE_PROJECTS_ROOT}/java-poc/complete'
+        type: exec
+        command: gradle build
+        component: gradle
+  - name: 2. Run application
+    actions:
+      - workdir: '${CHE_PROJECTS_ROOT}/java-poc/complete'
+        type: exec
+        command: gradle bootRun
+        component: gradle
+  - name: 3. Run in debug mode
+    actions:
+      - workdir: '${CHE_PROJECTS_ROOT}/java-poc/complete'
+        type: exec
+        command: gradle bootRun --debug-jvm
+        component: gradle
+  - name: 4. Run tests
+    actions:
+      - workdir: '${CHE_PROJECTS_ROOT}/java-poc/complete'
+        type: exec
+        command: gradle test
+        component: gradle
+  - name: Debug remote java application
+    actions:
+      - referenceContent: |
+          {
+           "version": "0.2.0",
+           "configurations": [
+             {
+               "type": "java",
+               "name": "Debug (Attach) - Remote",
+               "request": "attach",
+               "hostName": "localhost",
+               "port": 5005
+             }]
+           }
+        type: vscode-launch
